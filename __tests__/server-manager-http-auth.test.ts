@@ -18,16 +18,16 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@modelcontextprotocol/sdk/client/index.js", () => ({
-  Client: vi.fn().mockImplementation((info: unknown, options: unknown) => ({
-    info,
-    options,
-    setRequestHandler: vi.fn(),
-    setNotificationHandler: vi.fn(),
-    connect: vi.fn(async () => undefined),
-    listTools: vi.fn(async () => ({ tools: [] })),
-    listResources: vi.fn(async () => ({ resources: [] })),
-    close: vi.fn(async () => undefined),
-  })),
+  Client: vi.fn().mockImplementation(function (this: Record<string, unknown>, info: unknown, options: unknown) {
+    this.info = info;
+    this.options = options;
+    this.setRequestHandler = vi.fn();
+    this.setNotificationHandler = vi.fn();
+    this.connect = vi.fn(async () => undefined);
+    this.listTools = vi.fn(async () => ({ tools: [] }));
+    this.listResources = vi.fn(async () => ({ resources: [] }));
+    this.close = vi.fn(async () => undefined);
+  }),
 }));
 
 vi.mock("@modelcontextprotocol/sdk/client/stdio.js", () => ({
@@ -35,10 +35,11 @@ vi.mock("@modelcontextprotocol/sdk/client/stdio.js", () => ({
 }));
 
 vi.mock("@modelcontextprotocol/sdk/client/streamableHttp.js", () => ({
-  StreamableHTTPClientTransport: vi.fn().mockImplementation((url: URL, options: TransportOptions) => {
-    const transport = { url, options, close: vi.fn(async () => undefined) };
-    mocks.httpTransports.push(transport);
-    return transport;
+  StreamableHTTPClientTransport: vi.fn().mockImplementation(function (this: HttpTransportMock, url: URL, options: TransportOptions) {
+    this.url = url;
+    this.options = options;
+    this.close = vi.fn(async () => undefined);
+    mocks.httpTransports.push(this);
   }),
 }));
 

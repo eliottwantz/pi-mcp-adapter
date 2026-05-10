@@ -1,16 +1,16 @@
-import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { McpExtensionState } from "./state.js";
 import type { McpConfig, ServerEntry, McpPanelCallbacks, McpPanelResult, ImportKind } from "./types.js";
 import {
-  ensureCompatibilityImports,
-  getMcpDiscoverySummary,
-  getServerProvenance,
-  previewCompatibilityImports,
-  previewSharedServerEntry,
-  previewStarterProjectConfig,
-  writeDirectToolsConfig,
-  writeSharedServerEntry,
-  writeStarterProjectConfig,
+    ensureCompatibilityImports,
+    getMcpDiscoverySummary,
+    getServerProvenance,
+    previewCompatibilityImports,
+    previewSharedServerEntry,
+    previewStarterProjectConfig,
+    writeDirectToolsConfig,
+    writeSharedServerEntry,
+    writeStarterProjectConfig,
 } from "./config.js";
 import { lazyConnect, updateMetadataCache, updateStatusBar, getFailureAgeSeconds } from "./init.js";
 import { loadMetadataCache } from "./metadata-cache.js";

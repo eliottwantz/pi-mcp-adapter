@@ -1,14 +1,14 @@
-import { complete, type Api, type AssistantMessage, type Message, type Model, type TextContent } from "@mariozechner/pi-ai";
+import { complete, type Api, type AssistantMessage, type Message, type Model, type TextContent } from "@earendil-works/pi-ai";
 import { truncateAtWord } from "./utils.js";
-import type { ExtensionUIContext, ModelRegistry } from "@mariozechner/pi-coding-agent";
+import type { ExtensionUIContext, ModelRegistry } from "@earendil-works/pi-coding-agent";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import {
-  CreateMessageRequestSchema,
-  type CreateMessageRequest,
-  type CreateMessageResult,
-  type ModelPreferences,
-  type SamplingMessage,
-  type SamplingMessageContentBlock,
+    CreateMessageRequestSchema,
+    type CreateMessageRequest,
+    type CreateMessageResult,
+    type ModelPreferences,
+    type SamplingMessage,
+    type SamplingMessageContentBlock,
 } from "@modelcontextprotocol/sdk/types.js";
 
 export interface SamplingHandlerOptions {
