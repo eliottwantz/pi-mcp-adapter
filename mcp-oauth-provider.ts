@@ -8,23 +8,23 @@
 import type { OAuthClientProvider } from "@modelcontextprotocol/sdk/client/auth.js"
 import { UnauthorizedError } from "@modelcontextprotocol/sdk/client/auth.js"
 import type {
-  OAuthClientMetadata,
-  OAuthTokens,
-  OAuthClientInformation,
-  OAuthClientInformationFull,
+    OAuthClientMetadata,
+    OAuthTokens,
+    OAuthClientInformation,
+    OAuthClientInformationFull,
 } from "@modelcontextprotocol/sdk/shared/auth.js"
 import {
-  getAuthEntry,
-  getAuthForUrl,
-  updateTokens,
-  updateClientInfo,
-  updateCodeVerifier,
-  updateOAuthState,
-  clearAllCredentials,
-  clearClientInfo,
-  clearTokens,
-  type StoredTokens,
-  type StoredClientInfo,
+    getAuthEntry,
+    getAuthForUrl,
+    updateTokens,
+    updateClientInfo,
+    updateCodeVerifier,
+    updateOAuthState,
+    clearAllCredentials,
+    clearClientInfo,
+    clearTokens,
+    type StoredTokens,
+    type StoredClientInfo,
 } from "./mcp-auth.js"
 
 // Callback server configuration
@@ -114,7 +114,7 @@ export class McpOAuthProvider implements OAuthClientProvider {
     return {
       redirect_uris: [redirectUrl],
       client_name: "Pi Coding Agent",
-      client_uri: "https://github.com/nicobailon/pi-mcp-adapter",
+      client_uri: "https://github.com/eliottwantz/pi-mcp-adapter",
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
       token_endpoint_auth_method: this.config.clientSecret ? "client_secret_post" : "none",
