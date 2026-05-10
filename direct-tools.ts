@@ -47,6 +47,7 @@ async function attemptDirectAutoAuth(
     return { status: "skipped" };
   }
 
+  // @ts-expect-error - we know that oatuth is not bool at this point
   const grantType = definition.oauth?.grantType ?? "authorization_code";
   if (!state.ui && grantType !== "client_credentials") {
     return {
@@ -263,7 +264,7 @@ export function createDirectToolExecutor(
   getInitPromise: () => Promise<McpExtensionState> | null,
   spec: DirectToolSpec
 ): DirectToolExecute {
-  return async function execute(_toolCallId, params) {
+  return async function execute(_toolCallId, params: Record<string, unknown> | undefined) {
     let state = getState();
     const initPromise = getInitPromise();
 

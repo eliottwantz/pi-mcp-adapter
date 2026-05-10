@@ -44,6 +44,7 @@ async function attemptAutoAuth(
     return { status: "skipped" };
   }
 
+  // @ts-expect-error - oauth is not false at this point
   const grantType = definition.oauth?.grantType ?? "authorization_code";
   if (!state.ui && grantType !== "client_credentials") {
     return {

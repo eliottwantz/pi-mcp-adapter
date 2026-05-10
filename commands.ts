@@ -174,7 +174,7 @@ export async function authenticateServer(
       ctx.ui.notify(
         `OAuth authentication successful for "${serverName}"!\n` +
         `Run /mcp reconnect ${serverName} to connect with the new token.`,
-        "success"
+        "info"
       );
     } else {
       ctx.ui.notify(
@@ -265,7 +265,7 @@ export async function openMcpSetup(
     ctx.ui.custom(
       (tui, _theme, _keybindings, done) => {
         return createMcpSetupPanel(discovery, callbacks, { mode, onboardingState }, tui, () => {
-          done();
+          done(void 0);
           resolve({ configChanged });
         });
       },
@@ -329,7 +329,7 @@ export async function openMcpPanel(
             configChanged = true;
             ctx.ui.notify("Direct tools updated. Pi will reload after this panel closes.", "info");
           }
-          done();
+          done(void 0);
           resolve();
         }, { noticeLines });
       },

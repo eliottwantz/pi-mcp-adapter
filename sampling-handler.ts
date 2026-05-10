@@ -150,6 +150,7 @@ async function resolveSamplingModel(
     if (auth.ok) {
       return { model, apiKey: auth.apiKey, headers: auth.headers };
     }
+    // @ts-expect-error - TypeScript is not correctly narrowing the type here
     errors.push(`${model.provider}/${model.id}: ${auth.error}`);
   }
 

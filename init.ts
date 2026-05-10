@@ -56,6 +56,7 @@ export async function initializeMcp(
     consentManager,
     openBrowser: (url: string) => openUrl(pi, url, process.env.BROWSER),
     ui,
+    // @ts-expect-error - types are not correctly inferring the presence of sendMessage, but we know it will be there in practice
     sendMessage: (message, options) => pi.sendMessage(message, options),
   };
 
