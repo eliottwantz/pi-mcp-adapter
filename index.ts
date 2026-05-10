@@ -1,12 +1,14 @@
 import type { ExtensionAPI, ToolInfo } from "@earendil-works/pi-coding-agent";
 import type { McpExtensionState } from "./state.js";
+import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { showStatus, showTools, reconnectServers, authenticateServer, openMcpPanel, openMcpSetup } from "./commands.js";
 import { loadMcpConfig } from "./config.js";
 import { buildProxyDescription, createDirectToolExecutor, getMissingConfiguredDirectToolServers, resolveDirectTools } from "./direct-tools.js";
 import { flushMetadataCache, initializeMcp, updateStatusBar } from "./init.js";
-import { loadMetadataCache } from "./metadata-cache.js";
+import { isServerCacheValid, loadMetadataCache } from "./metadata-cache.js";
 import { executeCall, executeConnect, executeDescribe, executeList, executeSearch, executeStatus } from "./proxy-modes.js";
+import { buildToolMetadata, findToolByName } from "./tool-metadata.js";
 import { getConfigPathFromArgv, truncateAtWord } from "./utils.js";
 import { initializeOAuth, shutdownOAuth } from "./mcp-auth-flow.js";
 
@@ -14,6 +16,51 @@ export default function mcpAdapter(pi: ExtensionAPI) {
   let state: McpExtensionState | null = null;
   let initPromise: Promise<McpExtensionState> | null = null;
   let lifecycleGeneration = 0;
+
+  function formatProxyToolCall(args: {
+    tool?: string;
+    args?: string;
+    connect?: string;
+    describe?: string;
+    search?: string;
+    server?: string;
+  }): string {
+    if (!args.tool) {
+      return `🔌 MCP mcp(${JSON.stringify(args)})`;
+    }
+
+    let serverName = args.server;
+    let displayToolName = args.tool;
+
+    const findDisplayTool = (server: string) => {
+      if (state) {
+        return findToolByName(state.toolMetadata.get(server), args.tool);
+      }
+      const cached = earlyCache?.servers[server];
+      const definition = earlyConfig.mcpServers[server];
+      if (!cached || !definition || !isServerCacheValid(cached, definition)) return undefined;
+      const { metadata } = buildToolMetadata(cached.tools, cached.resources, definition, server, prefix);
+      return findToolByName(metadata, args.tool);
+    };
+
+    if (!serverName) {
+      for (const server of Object.keys(earlyConfig.mcpServers)) {
+        const found = findDisplayTool(server);
+        if (found) {
+          serverName = server;
+          displayToolName = found.originalName;
+          break;
+        }
+      }
+    } else {
+      const found = findDisplayTool(serverName);
+      displayToolName = found?.originalName ?? displayToolName;
+    }
+
+    const parsedArgs = args.args ? args.args.trim() : "{}";
+    const toolCall = `${displayToolName}(${parsedArgs || "{}"})`;
+    return serverName ? `🔌 MCP ${serverName}.${toolCall}` : `🔌 MCP ${toolCall}`;
+  }
 
   async function shutdownState(currentState: McpExtensionState | null, reason: string): Promise<void> {
     if (!currentState) return;
@@ -232,6 +279,9 @@ export default function mcpAdapter(pi: ExtensionAPI) {
       label: "MCP",
       description: buildProxyDescription(earlyConfig, earlyCache, directSpecs),
       promptSnippet: "MCP gateway - connect to MCP servers and call their tools",
+      renderCall(args, theme) {
+        return new Text(theme.fg("toolTitle", theme.bold(formatProxyToolCall(args))), 0, 0);
+      },
       parameters: Type.Object({
         tool: Type.Optional(Type.String({ description: "Tool name to call (e.g., 'xcodebuild_list_sims')" })),
         args: Type.Optional(Type.String({ description: "Arguments as JSON string (e.g., '{\"key\": \"value\"}')" })),
