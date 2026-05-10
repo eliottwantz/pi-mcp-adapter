@@ -242,65 +242,6 @@ When you change direct-tool toggles in `/mcp` or write new config through `/mcp 
 
 **Subagent integration:** If you use the subagent extension, agents can request direct MCP tools in their frontmatter with `mcp:server-name` syntax. See the subagent README for details.
 
-### MCP UI Integration
-
-MCP servers can ship interactive UIs via the [MCP UI](https://github.com/MCP-UI-Org/mcp-ui) standard. When you call a tool that has a UI resource, the adapter opens it in a native macOS window via [Glimpse](https://github.com/hazat/glimpse) if available, otherwise falls back to the browser.
-
-**How it works:**
-
-1. Agent calls a tool like `launch_dashboard`
-2. The tool's metadata includes `_meta.ui.resourceUri` pointing to a UI resource
-3. pi-mcp-adapter fetches the UI HTML and opens it in an iframe
-4. The UI can call MCP tools and send messages back to the agent
-
-**Native rendering:** On macOS, if [Glimpse](https://github.com/hazat/glimpse) is installed (`pi install npm:glimpseui`), UIs open in a native WKWebView window instead of a browser tab. Set `MCP_UI_VIEWER=browser` to force the browser, or `MCP_UI_VIEWER=glimpse` to require native rendering.
-
-**Bidirectional communication:** The UI talks back. When it sends a prompt or intent, the message is stored and `triggerTurn()` wakes the agent. The agent retrieves messages via `mcp({ action: "ui-messages" })` and responds, enabling conversational UIs where the app and agent collaborate in real-time.
-
-**Session reuse:** When the agent calls the same tool again while its UI is already open, the adapter pushes the new result to the existing window instead of replacing it. This enables live updates — the agent can refine a chart, add data, or respond to user input without losing the current view. Different tools still replace the session as before.
-
-**Message types from UI:**
-
-| Type | Purpose |
-|------|---------|
-| `prompt` | User message that triggers an agent response |
-| `intent` | Structured action with name + params |
-| `notify` | Fire-and-forget notification |
-| `message` | Generic message payload |
-| (custom) | Any other type forwarded as intent |
-
-**Retrieving UI messages:**
-
-```
-mcp({ action: "ui-messages" })
-```
-
-Returns accumulated messages from UI sessions. Each message includes `type`, `sessionId`, `serverName`, `toolName`, and `timestamp`. Prompt messages include `prompt`, intent messages include `intent` and `params`.
-
-**Browser controls:**
-
-- **Cmd/Ctrl+Enter** — Complete and close
-- **Escape** — Cancel and close
-- **Done/Cancel buttons** — Same as keyboard shortcuts
-
-**Technical notes:**
-
-- Tool consent gates whether UIs can call MCP tools (never/once-per-server/always)
-- Works with both stdio and HTTP MCP servers
-- Uses a local 408KB AppBridge bundle (MCP SDK + Zod) for browser↔server communication
-
-### Local Example: Interactive Visualizer
-
-A minimal MCP UI example at `examples/interactive-visualizer` demonstrating charts, bidirectional messaging, and streaming. From that directory:
-
-```bash
-npm install
-npm run build
-npm run install-local
-```
-
-Restart pi, then ask the agent to show a chart — it calls `show_chart` and opens the UI in Glimpse (macOS) or the browser. Use `npm run uninstall-local` to remove the MCP entry.
-
 ### Import Existing Configs
 
 Shared MCP files are loaded automatically. Use `imports` only for host-specific config formats that are not already covered by `.mcp.json` or `~/.config/mcp/mcp.json`.
@@ -330,7 +271,6 @@ Prefer `.mcp.json` for project-local shared MCP config. Use `.pi/mcp.json` only 
 | Describe | `mcp({ describe: "tool_name" })` |
 | Call | `mcp({ tool: "...", args: '{"key": "value"}' })` |
 | Connect | `mcp({ connect: "server-name" })` |
-| UI messages | `mcp({ action: "ui-messages" })` |
 
 Search includes both MCP tools and Pi tools (from extensions). Pi tools appear first with `[pi tool]` prefix. Space-separated words are OR'd.
 

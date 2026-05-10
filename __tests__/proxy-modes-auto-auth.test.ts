@@ -198,7 +198,6 @@ describe("proxy auto auth", () => {
       ]),
       failureTracker: new Map(),
       ui: { setStatus: vi.fn() },
-      completedUiSessions: [],
     } as any;
 
     const result = await executeCall(state, "demo_search", { q: "hello" }, "demo");

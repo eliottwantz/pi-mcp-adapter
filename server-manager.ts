@@ -8,10 +8,8 @@ import type {
   McpTool,
   McpResource,
   ServerDefinition,
-  ServerStreamResultPatchNotification,
   Transport,
 } from "./types.js";
-import { serverStreamResultPatchNotificationSchema } from "./types.js";
 import { resolveNpxBinary } from "./npx-resolver.js";
 import { logger } from "./logger.js";
 import { McpOAuthProvider } from "./mcp-oauth-provider.js";
@@ -30,12 +28,9 @@ interface ServerConnection {
   status: "connected" | "closed" | "needs-auth";
 }
 
-type UiStreamListener = (serverName: string, notification: ServerStreamResultPatchNotification["params"]) => void;
-
 export class McpServerManager {
   private connections = new Map<string, ServerConnection>();
   private connectPromises = new Map<string, Promise<ServerConnection>>();
-  private uiStreamListeners = new Map<string, UiStreamListener>();
   private samplingConfig: ServerSamplingConfig | undefined;
 
   setSamplingConfig(config: ServerSamplingConfig | undefined): void {
@@ -104,8 +99,6 @@ export class McpServerManager {
     
     try {
       await client.connect(transport);
-      this.attachAdapterNotificationHandlers(name, client);
-
       // Discover tools and resources
       const [tools, resources] = await Promise.all([
         this.fetchAllTools(client),
@@ -262,21 +255,6 @@ export class McpServerManager {
     }
   }
 
-  private attachAdapterNotificationHandlers(serverName: string, client: Client): void {
-    client.setNotificationHandler(serverStreamResultPatchNotificationSchema, (notification) => {
-      const listener = this.uiStreamListeners.get(notification.params.streamToken);
-      if (!listener) return;
-      listener(serverName, notification.params);
-    });
-  }
-
-  registerUiStreamListener(streamToken: string, listener: UiStreamListener): void {
-    this.uiStreamListeners.set(streamToken, listener);
-  }
-
-  removeUiStreamListener(streamToken: string): void {
-    this.uiStreamListeners.delete(streamToken);
-  }
 
   async readResource(name: string, uri: string): Promise<ReadResourceResult> {
     const connection = this.connections.get(name);

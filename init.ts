@@ -18,7 +18,6 @@ import {
 } from "./metadata-cache.js";
 import { McpServerManager } from "./server-manager.js";
 import { buildToolMetadata, totalToolCount } from "./tool-metadata.js";
-import { UiResourceHandler } from "./ui-resource-handler.js";
 import { openUrl, parallelLimit } from "./utils.js";
 import { logger } from "./logger.js";
 import { getMissingConfiguredDirectToolServers } from "./direct-tools.js";
@@ -46,7 +45,6 @@ export async function initializeMcp(
   const lifecycle = new McpLifecycleManager(manager);
   const toolMetadata = new Map<string, ToolMetadata[]>();
   const failureTracker = new Map<string, number>();
-  const uiResourceHandler = new UiResourceHandler(manager);
   const consentManager = new ConsentManager("once-per-server");
   const ui = ctx.hasUI ? ctx.ui : undefined;
   const state: McpExtensionState = {
@@ -55,10 +53,7 @@ export async function initializeMcp(
     toolMetadata,
     config,
     failureTracker,
-    uiResourceHandler,
     consentManager,
-    uiServer: null,
-    completedUiSessions: [],
     openBrowser: (url: string) => openUrl(pi, url, process.env.BROWSER),
     ui,
     sendMessage: (message, options) => pi.sendMessage(message, options),

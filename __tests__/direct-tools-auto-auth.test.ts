@@ -65,7 +65,6 @@ describe("direct tools auto auth", () => {
       },
       failureTracker: new Map(),
       ui: { setStatus: vi.fn() },
-      completedUiSessions: [],
     } as any;
 
     const executor = createDirectToolExecutor(
@@ -109,7 +108,6 @@ describe("direct tools auto auth", () => {
       },
       failureTracker: new Map(),
       ui: undefined,
-      completedUiSessions: [],
     } as any;
 
     mocks.lazyConnect.mockResolvedValue(false);
@@ -154,7 +152,6 @@ describe("direct tools auto auth", () => {
       },
       failureTracker: new Map(),
       ui: undefined,
-      completedUiSessions: [],
     } as any;
 
     mocks.lazyConnect.mockResolvedValue(false);

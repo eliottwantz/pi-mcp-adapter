@@ -1,11 +1,10 @@
 import type { AgentToolResult, ToolInfo } from "@mariozechner/pi-coding-agent";
 import type { McpExtensionState } from "./state.js";
 import type { ToolMetadata, McpContent } from "./types.js";
-import { getServerPrefix, parseUiPromptHandoff } from "./types.js";
+import { getServerPrefix } from "./types.js";
 import { lazyConnect, updateServerMetadata, updateMetadataCache, getFailureAgeSeconds, updateStatusBar } from "./init.js";
 import { buildToolMetadata, getToolNames, findToolByName, formatSchema } from "./tool-metadata.js";
 import { transformMcpContent } from "./tool-registrar.js";
-import { maybeStartUiSession, type UiSessionRuntime } from "./ui-session.js";
 import { formatAuthRequiredMessage, truncateAtWord } from "./utils.js";
 import { authenticate, supportsOAuth } from "./mcp-auth-flow.js";
 
@@ -67,84 +66,6 @@ async function attemptAutoAuth(
       message: getAuthFailedMessage(state, serverName, message),
     };
   }
-}
-
-export function executeUiMessages(state: McpExtensionState): ProxyToolResult {
-  const sessions = state.completedUiSessions;
-
-  if (sessions.length === 0) {
-    return {
-      content: [{ type: "text" as const, text: "No UI session messages available." }],
-      details: { sessions: 0 },
-    };
-  }
-
-  const output: string[] = [];
-  output.push(`UI Session Messages (${sessions.length} session${sessions.length > 1 ? "s" : ""}):\n`);
-
-  const allPrompts: string[] = [];
-  const allIntents = sessions.flatMap((session) => session.messages.intents);
-  const parsedHandoffs: Array<{ intent: string; params: Record<string, unknown>; raw: string }> = [];
-
-  for (const session of sessions) {
-    const timestamp = session.completedAt.toLocaleTimeString();
-    output.push(`\n## ${session.serverName} / ${session.toolName} (${timestamp}, ${session.reason})`);
-
-    const plainPrompts: string[] = [];
-    for (const prompt of session.messages.prompts) {
-      allPrompts.push(prompt);
-      const handoff = parseUiPromptHandoff(prompt);
-      if (handoff) {
-        parsedHandoffs.push(handoff);
-      } else {
-        plainPrompts.push(prompt);
-      }
-    }
-
-    if (plainPrompts.length > 0) {
-      output.push("\n### Prompts:");
-      for (const prompt of plainPrompts) {
-        output.push(`- ${prompt}`);
-      }
-    }
-
-    const intentsForSession = [
-      ...session.messages.intents,
-      ...session.messages.prompts
-        .map((prompt) => parseUiPromptHandoff(prompt))
-        .filter((handoff): handoff is NonNullable<typeof handoff> => !!handoff)
-        .map((handoff) => ({ intent: handoff.intent, params: handoff.params })),
-    ];
-
-    if (intentsForSession.length > 0) {
-      output.push("\n### Intents:");
-      for (const intent of intentsForSession) {
-        const params = intent.params ? ` (${JSON.stringify(intent.params)})` : "";
-        output.push(`- ${intent.intent}${params}`);
-      }
-    }
-
-    if (session.messages.notifications.length > 0) {
-      output.push("\n### Notifications:");
-      for (const notification of session.messages.notifications) {
-        output.push(`- ${notification}`);
-      }
-    }
-  }
-
-  const count = sessions.length;
-  state.completedUiSessions = [];
-
-  return {
-    content: [{ type: "text" as const, text: output.join("\n") }],
-    details: {
-      sessions: count,
-      prompts: allPrompts,
-      intents: [...allIntents, ...parsedHandoffs.map(({ intent, params }) => ({ intent, params }))],
-      handoffs: parsedHandoffs,
-      cleared: true,
-    },
-  };
 }
 
 export function executeStatus(state: McpExtensionState): ProxyToolResult {
@@ -688,8 +609,6 @@ export async function executeCall(
     }
   }
 
-  let uiSession: UiSessionRuntime | null = null;
-
   try {
     state.manager.touch(serverName);
     state.manager.incrementInFlight(serverName);
@@ -706,55 +625,10 @@ export async function executeCall(
       };
     }
 
-    uiSession = toolMeta.uiResourceUri
-      ? await maybeStartUiSession(state, {
-          serverName,
-          toolName: toolMeta.originalName,
-          toolArgs: args ?? {},
-          uiResourceUri: toolMeta.uiResourceUri,
-          streamMode: toolMeta.uiStreamMode,
-        })
-      : null;
-
-    const resultPromise = connection.client.callTool({
+    const result = await connection.client.callTool({
       name: toolMeta.originalName,
       arguments: args ?? {},
-      _meta: uiSession?.requestMeta,
     });
-
-    if (toolMeta.uiResourceUri) {
-      const result = await resultPromise;
-      uiSession?.sendToolResult(result as unknown as import("@modelcontextprotocol/sdk/types.js").CallToolResult);
-      const mcpContent = (result.content ?? []) as McpContent[];
-      const content = transformMcpContent(mcpContent);
-
-      const mcpText = content
-        .filter((c) => c.type === "text")
-        .map((c) => (c as { text: string }).text)
-        .join("\n");
-
-      if (result.isError) {
-        let errorWithSchema = `Error: ${mcpText || "Tool execution failed"}`;
-        if (toolMeta.inputSchema) {
-          errorWithSchema += `\n\nExpected parameters:\n${formatSchema(toolMeta.inputSchema)}`;
-        }
-        return {
-          content: [{ type: "text" as const, text: errorWithSchema }],
-          details: { mode: "call", error: "tool_error", mcpResult: result },
-        };
-      }
-
-      const resultText = mcpText || "(empty result)";
-      const uiMessage = uiSession?.reused
-        ? "Updated the open UI."
-        : "📺 Interactive UI is now open in your browser. I'll respond to your prompts and intents as you interact with it.";
-      return {
-        content: [{ type: "text" as const, text: `${resultText}\n\n${uiMessage}` }],
-        details: { mode: "call", mcpResult: result, server: serverName, tool: toolMeta.originalName, uiOpen: true },
-      };
-    }
-
-    const result = await resultPromise;
 
     const mcpContent = (result.content ?? []) as McpContent[];
     const content = transformMcpContent(mcpContent);
@@ -782,8 +656,6 @@ export async function executeCall(
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    uiSession?.sendToolCancelled(message);
-
     let errorWithSchema = `Failed to call tool: ${message}`;
     if (toolMeta.inputSchema) {
       errorWithSchema += `\n\nExpected parameters:\n${formatSchema(toolMeta.inputSchema)}`;
@@ -794,9 +666,6 @@ export async function executeCall(
       details: { mode: "call", error: "call_failed", message },
     };
   } finally {
-    if (uiSession?.reused) {
-      uiSession.close();
-    }
     state.manager.decrementInFlight(serverName);
     state.manager.touch(serverName);
   }

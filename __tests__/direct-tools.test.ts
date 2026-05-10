@@ -25,7 +25,7 @@ afterEach(() => {
 });
 
 describe("buildProxyDescription", () => {
-  it("documents the ui-messages action", () => {
+  it("documents proxy actions", () => {
     const config: McpConfig = {
       mcpServers: {
         demo: {
@@ -55,8 +55,6 @@ describe("buildProxyDescription", () => {
 
     const description = buildProxyDescription(config, cache, []);
 
-    expect(description).toContain('mcp({ action: "ui-messages" })');
-    expect(description).toContain("Retrieve accumulated messages from completed UI sessions");
     expect(description).toContain("Search MCP tools by name/description");
     expect(description).toContain("Non-MCP Pi tools should be called directly, not through mcp.");
     expect(description).not.toContain("MCP + pi");

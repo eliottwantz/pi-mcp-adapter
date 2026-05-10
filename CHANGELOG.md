@@ -138,38 +138,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Added `promptSnippet` to MCP proxy tool and direct MCP tools so they appear in the system prompt's Available tools section (required since pi 0.59.0)
 
-## [2.2.0] - 2026-03-16
-
-### Added
-- **MCP UI Integration** - Support for the [MCP UI](https://github.com/MCP-UI-Org/mcp-ui) standard. Tools with `_meta.ui.resourceUri` open interactive UIs:
-  - Bidirectional AppBridge communication (tool calls, messages, context updates)
-  - Works with both stdio and HTTP MCP servers
-  - User consent management for tool calls from UI (configurable: never/once-per-server/always)
-  - Keyboard shortcuts: Cmd/Ctrl+Enter to complete, Escape to cancel
-  - UI prompts/intents trigger agent turns via `pi.sendMessage({ triggerTurn: true })`
-  - `mcp({ action: "ui-messages" })` retrieves accumulated messages from UI sessions
-
-- **Session reuse** - When the agent calls the same tool while its UI is already open, results push to the existing window instead of replacing it. Per-call stream IDs with independent sequences. Error results scoped to the individual call.
-
-- **Glimpse integration** - MCP UI opens in a native macOS WKWebView window instead of a browser tab when [Glimpse](https://github.com/hazat/glimpse) is installed (`pi install npm:glimpseui`). Falls back to browser on non-macOS or when unavailable. Override with `MCP_UI_VIEWER=browser` or `MCP_UI_VIEWER=glimpse`.
-
-- **Logger module** (`logger.ts`) - Centralized logging with levels (debug/info/warn/error), contextual child loggers, and `MCP_UI_DEBUG=1` env var.
-
-- **Error types** (`errors.ts`) - Structured errors with recovery hints: `ResourceFetchError`, `ResourceParseError`, `BridgeConnectionError`, `ConsentError`, `SessionError`, `ServerError`, and `wrapError()` helper.
-
-- **Test suite** - 178 tests covering consent manager, UI resource handler, host HTML template, logger, and error types.
-
-- **Interactive visualizer example** (`examples/interactive-visualizer`) - Minimal MCP server demonstrating charts (bar/line/pie/doughnut via Chart.js), bidirectional messaging, and streaming.
-
-### Fixed
-- Host-iframe timing: bridge now connects before loading iframe, fixing `ui/initialize` timeout on first load
-- All internal `log.info` calls demoted to `log.debug` to eliminate stdout noise during normal use
-
-### Technical Notes
-- Uses local minified AppBridge bundle (408KB) to avoid CDN Zod bundling issues
-- Serves app HTML from `/ui-app` endpoint instead of blob URLs to avoid iframe issues
-- SSE for real-time tool result streaming to browser
-
 ## [2.1.2] - 2026-02-03
 
 ### Changed

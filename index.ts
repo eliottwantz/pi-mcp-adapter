@@ -6,7 +6,7 @@ import { loadMcpConfig } from "./config.js";
 import { buildProxyDescription, createDirectToolExecutor, getMissingConfiguredDirectToolServers, resolveDirectTools } from "./direct-tools.js";
 import { flushMetadataCache, initializeMcp, updateStatusBar } from "./init.js";
 import { loadMetadataCache } from "./metadata-cache.js";
-import { executeCall, executeConnect, executeDescribe, executeList, executeSearch, executeStatus, executeUiMessages } from "./proxy-modes.js";
+import { executeCall, executeConnect, executeDescribe, executeList, executeSearch, executeStatus } from "./proxy-modes.js";
 import { getConfigPathFromArgv, truncateAtWord } from "./utils.js";
 import { initializeOAuth, shutdownOAuth } from "./mcp-auth-flow.js";
 
@@ -18,10 +18,6 @@ export default function mcpAdapter(pi: ExtensionAPI) {
   async function shutdownState(currentState: McpExtensionState | null, reason: string): Promise<void> {
     if (!currentState) return;
 
-    if (currentState.uiServer) {
-      currentState.uiServer.close(reason);
-      currentState.uiServer = null;
-    }
 
     let flushError: unknown;
     try {
@@ -245,7 +241,6 @@ export default function mcpAdapter(pi: ExtensionAPI) {
         regex: Type.Optional(Type.Boolean({ description: "Treat search as regex (default: substring match)" })),
         includeSchemas: Type.Optional(Type.Boolean({ description: "Include parameter schemas in search results (default: true)" })),
         server: Type.Optional(Type.String({ description: "Filter to specific server (also disambiguates tool calls)" })),
-        action: Type.Optional(Type.String({ description: "Action: 'ui-messages' to retrieve prompts/intents from UI sessions" })),
       }),
       async execute(_toolCallId, params: {
         tool?: string;
@@ -256,7 +251,6 @@ export default function mcpAdapter(pi: ExtensionAPI) {
         regex?: boolean;
         includeSchemas?: boolean;
         server?: string;
-        action?: string;
       }, _signal, _onUpdate, _ctx) {
         let parsedArgs: Record<string, unknown> | undefined;
         if (params.args) {
@@ -292,9 +286,6 @@ export default function mcpAdapter(pi: ExtensionAPI) {
           };
         }
 
-        if (params.action === "ui-messages") {
-          return executeUiMessages(state);
-        }
         if (params.tool) {
           return executeCall(state, params.tool, parsedArgs, params.server, getPiTools);
         }

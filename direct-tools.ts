@@ -6,7 +6,6 @@ import { lazyConnect, getFailureAgeSeconds } from "./init.js";
 import { isServerCacheValid } from "./metadata-cache.js";
 import { formatSchema } from "./tool-metadata.js";
 import { transformMcpContent } from "./tool-registrar.js";
-import { maybeStartUiSession, type UiSessionRuntime } from "./ui-session.js";
 import { formatToolName, isToolExcluded } from "./types.js";
 import { resourceNameToToolName } from "./resource-tools.js";
 import { authenticate, supportsOAuth } from "./mcp-auth-flow.js";
@@ -145,8 +144,6 @@ export function resolveDirectTools(
         prefixedName,
         description: tool.description ?? "",
         inputSchema: tool.inputSchema,
-        uiResourceUri: tool.uiResourceUri,
-        uiStreamMode: tool.uiStreamMode,
       });
     }
 
@@ -254,7 +251,6 @@ export function buildProxyDescription(
   desc += `  mcp({ describe: "tool_name" })        → Show tool details and parameters\n`;
   desc += `  mcp({ connect: "server-name" })       → Connect to a server and refresh metadata\n`;
   desc += `  mcp({ tool: "name", args: '{"key": "value"}' })    → Call a tool (args is JSON string)\n`;
-  desc += `  mcp({ action: "ui-messages" })        → Retrieve accumulated messages from completed UI sessions\n`;
   desc += `\nMode: tool (call) > connect > describe > search > server (list) > action > nothing (status)`;
 
   return desc;
@@ -332,8 +328,6 @@ export function createDirectToolExecutor(
       };
     }
 
-    let uiSession: UiSessionRuntime | null = null;
-
     try {
       state.manager.touch(spec.serverName);
       state.manager.incrementInFlight(spec.serverName);
@@ -350,25 +344,12 @@ export function createDirectToolExecutor(
         };
       }
 
-      const hasUi = !!spec.uiResourceUri;
-      uiSession = hasUi
-        ? await maybeStartUiSession(state, {
-            serverName: spec.serverName,
-            toolName: spec.originalName,
-            toolArgs: params ?? {},
-            uiResourceUri: spec.uiResourceUri!,
-            streamMode: spec.uiStreamMode,
-          })
-        : null;
-
       const resultPromise = connection.client.callTool({
         name: spec.originalName,
         arguments: params ?? {},
-        _meta: uiSession?.requestMeta,
       });
 
       const result = await resultPromise;
-      uiSession?.sendToolResult(result as unknown as import("@modelcontextprotocol/sdk/types.js").CallToolResult);
 
       const mcpContent = (result.content ?? []) as McpContent[];
       const content = transformMcpContent(mcpContent);
@@ -384,24 +365,12 @@ export function createDirectToolExecutor(
         };
       }
 
-      const resultText = content.filter(c => c.type === "text").map(c => (c as { text: string }).text).join("\n") || "(empty result)";
-      if (hasUi) {
-        const uiMessage = uiSession?.reused
-          ? "Updated the open UI."
-          : "📺 Interactive UI is now open in your browser. I'll respond to your prompts and intents as you interact with it.";
-        return {
-          content: [{ type: "text" as const, text: `${resultText}\n\n${uiMessage}` }],
-          details: { server: spec.serverName, tool: spec.originalName, uiOpen: true },
-        };
-      }
-
       return {
         content: content.length > 0 ? content : [{ type: "text" as const, text: "(empty result)" }],
         details: { server: spec.serverName, tool: spec.originalName },
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      uiSession?.sendToolCancelled(message);
       let errorText = `Failed to call tool: ${message}`;
       if (spec.inputSchema) {
         errorText += `\n\nExpected parameters:\n${formatSchema(spec.inputSchema)}`;
@@ -411,9 +380,6 @@ export function createDirectToolExecutor(
         details: { error: "call_failed", server: spec.serverName },
       };
     } finally {
-      if (uiSession?.reused) {
-        uiSession.close();
-      }
       state.manager.decrementInFlight(spec.serverName);
       state.manager.touch(spec.serverName);
     }

@@ -1,5 +1,5 @@
 /**
- * Centralized logging for MCP UI operations.
+ * Centralized logging for MCP adapter operations.
  * Provides structured, contextual logs with levels.
  */
 

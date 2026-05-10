@@ -94,10 +94,7 @@ function createState() {
     toolMetadata: new Map(),
     config: { mcpServers: {} },
     failureTracker: new Map(),
-    uiResourceHandler: {},
     consentManager: {},
-    uiServer: null,
-    completedUiSessions: [],
     openBrowser: vi.fn(),
   } as any;
 }
