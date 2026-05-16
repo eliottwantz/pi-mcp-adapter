@@ -380,7 +380,7 @@ class McpPanel {
         const tool = server.tools[item.toolIndex];
         tool.isDirect = !tool.isDirect;
         if (tool.isDirect && server.source === "import") {
-          this.importNotice = `Imported from ${server.importKind ?? "external"} — will copy to user config on save`;
+          this.importNotice = `Imported from ${server.importKind ?? "external"} — will save direct-tool override to this project`;
         }
         this.updateDirty();
       }
@@ -444,14 +444,14 @@ class McpPanel {
     if (item.type === "server") {
       const newState = !server.tools.every((t) => t.isDirect);
       if (server.source === "import" && newState) {
-        this.importNotice = `Imported from ${server.importKind ?? "external"} — will copy to user config on save`;
+        this.importNotice = `Imported from ${server.importKind ?? "external"} — will save direct-tool override to this project`;
       }
       for (const t of server.tools) t.isDirect = newState;
     } else if (item.toolIndex !== undefined) {
       const tool = server.tools[item.toolIndex];
       tool.isDirect = !tool.isDirect;
       if (tool.isDirect && server.source === "import") {
-        this.importNotice = `Imported from ${server.importKind ?? "external"} — will copy to user config on save`;
+        this.importNotice = `Imported from ${server.importKind ?? "external"} — will save direct-tool override to this project`;
       }
     }
     this.updateDirty();

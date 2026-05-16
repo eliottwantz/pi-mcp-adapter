@@ -242,9 +242,14 @@ describe("config discovery", () => {
     );
 
     const userConfig = JSON.parse(readFileSync(getPiGlobalConfigPath(), "utf-8"));
-    expect(userConfig.mcpServers.genericServer).toMatchObject({ command: "generic", directTools: true });
+    expect(userConfig.mcpServers.genericServer).toBeUndefined();
 
-    const projectConfig = JSON.parse(readFileSync(join(project, ".mcp.json"), "utf-8"));
+    const sharedProjectConfig = JSON.parse(readFileSync(join(project, ".mcp.json"), "utf-8"));
+    expect(sharedProjectConfig.mcpServers.projectServer).toMatchObject({ command: "project" });
+    expect(sharedProjectConfig.mcpServers.projectServer.directTools).toBeUndefined();
+
+    const projectConfig = JSON.parse(readFileSync(join(project, ".pi", "mcp.json"), "utf-8"));
+    expect(projectConfig.mcpServers.genericServer).toMatchObject({ command: "generic", directTools: true });
     expect(projectConfig.mcpServers.projectServer).toMatchObject({ command: "project", directTools: ["search"] });
   });
 

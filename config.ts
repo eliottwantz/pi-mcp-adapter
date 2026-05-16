@@ -630,37 +630,23 @@ export function getServerProvenance(overridePath?: string): Map<string, ServerPr
 
 export function writeDirectToolsConfig(
   changes: Map<string, true | string[] | false>,
-  provenance: Map<string, ServerProvenance>,
+  _provenance: Map<string, ServerProvenance>,
   fullConfig: McpConfig,
 ): void {
-  const byPath = new Map<string, { name: string; value: true | string[] | false; prov: ServerProvenance }[]>();
+  // Direct-tool selections are Pi-specific UI state. Always persist them as a
+  // local project override so using the MCP panel can never mutate a user's
+  // global/shared MCP config.
+  const filePath = getProjectPiConfigPath();
+  const raw = readRawConfigObject(filePath);
+  const servers = getServersObject(raw);
 
-  for (const [serverName, value] of changes) {
-    const prov = provenance.get(serverName);
-    if (!prov) continue;
-
-    const targetPath = prov.path;
-
-    if (!byPath.has(targetPath)) byPath.set(targetPath, []);
-    byPath.get(targetPath)!.push({ name: serverName, value, prov });
+  for (const [name, value] of changes) {
+    const existing = servers[name];
+    const fullDef = fullConfig.mcpServers[name];
+    if (!existing && !fullDef) continue;
+    servers[name] = { ...(fullDef ?? {}), ...(existing ?? {}), directTools: value };
   }
 
-  for (const [filePath, entries] of byPath) {
-    const raw = readRawConfigObject(filePath);
-    const servers = getServersObject(raw);
-
-    for (const { name, value, prov } of entries) {
-      if (prov.kind === "import") {
-        const fullDef = fullConfig.mcpServers[name];
-        if (fullDef) {
-          servers[name] = { ...fullDef, directTools: value };
-        }
-      } else if (servers[name]) {
-        servers[name] = { ...servers[name], directTools: value };
-      }
-    }
-
-    setServersObject(raw, servers);
-    writeRawConfigObject(filePath, raw);
-  }
+  setServersObject(raw, servers);
+  writeRawConfigObject(filePath, raw);
 }
